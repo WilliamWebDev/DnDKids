@@ -245,6 +245,27 @@
       display: block;
     }
 
+    /* Logo på startside */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: .25rem;
+      flex-wrap: wrap;
+    }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      background: linear-gradient(135deg,#22c55e,#3b82f6);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+
     @media (max-width: 640px) {
       .card {
         padding: .9rem;
@@ -261,8 +282,17 @@
     <!-- STARTSIDA: VELG KARAKTER -->
     <section id="view-select" class="view active">
       <div class="card">
-        <h1>15-minutters DnD – Kube-kompanjong</h1>
-        <p>Velg en karakter. Barnet kan så bruke siden til å holde orden på HP, stats, XP, blokkmynter og inventory mens dere spiller.</p>
+        <div class="logo-row">
+          <div class="logo-icon">🐲</div>
+          <div>
+            <h1 style="margin-bottom:.05rem;">Kube-Drage Kompanjong</h1>
+            <div style="font-size:.9rem;color:#9ca3af;">
+              15-minutters DnD for barn – firkantverden!
+            </div>
+          </div>
+        </div>
+
+        <p>Velg en karakter. Barnet kan bruke siden til å holde orden på HP, stats, XP, blokkmynter og inventory mens dere spiller.</p>
 
         <div class="character-grid" id="character-grid">
           <!-- Fylles fra JavaScript -->
@@ -361,6 +391,8 @@
       }
     };
 
+    const STORAGE_PREFIX = "kubednd_state_";
+
     let currentCharacterId = null;
     let currentState = null; // {stats: {...}, inventory: [], xp: 0, coins: 0}
 
@@ -385,11 +417,42 @@
       return 4;
     }
 
+    function safeGetStorageKey(id) {
+      return STORAGE_PREFIX + id;
+    }
+
+    function loadState(id) {
+      try {
+        const key = safeGetStorageKey(id);
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed;
+      } catch (e) {
+        console.warn("Kunne ikke lese fra localStorage:", e);
+        return null;
+      }
+    }
+
+    function saveCurrentState() {
+      if (!currentCharacterId || !currentState) return;
+      try {
+        const key = safeGetStorageKey(currentCharacterId);
+        window.localStorage.setItem(key, JSON.stringify(currentState));
+      } catch (e) {
+        console.warn("Kunne ikke lagre til localStorage:", e);
+      }
+    }
+
     function renderCharacterGrid() {
       const grid = document.getElementById("character-grid");
       grid.innerHTML = "";
 
       Object.values(baseCharacters).forEach(ch => {
+        const saved = loadState(ch.id);
+        const xp = saved?.xp ?? 0;
+        const level = getLevelFromXp(xp);
+
         const card = document.createElement("div");
         card.className = "character-card card";
 
@@ -402,16 +465,17 @@
               <div style="font-weight:600;">${ch.name}</div>
               <div class="pill-row">
                 <span class="pill">${ch.role}</span>
+                <span class="pill">⭐ Nivå ${level}</span>
               </div>
             </div>
           </div>
           <p style="font-size:.9rem;color:#d1d5db;margin:.4rem 0 .6rem;">${ch.description}</p>
           <div class="pill-row">
-            <span class="pill">HP: ${ch.stats.HP}</span>
-            <span class="pill">AC: ${ch.stats.AC}</span>
-            <span class="pill">Body: ${formatBonus(ch.stats.Body)}</span>
-            <span class="pill">Mind: ${formatBonus(ch.stats.Mind)}</span>
-            <span class="pill">People: ${formatBonus(ch.stats.People)}</span>
+            <span class="pill">HP: ${(saved?.stats?.HP) ?? ch.stats.HP}</span>
+            <span class="pill">AC: ${(saved?.stats?.AC) ?? ch.stats.AC}</span>
+            <span class="pill">Body: ${formatBonus((saved?.stats?.Body) ?? ch.stats.Body)}</span>
+            <span class="pill">Mind: ${formatBonus((saved?.stats?.Mind) ?? ch.stats.Mind)}</span>
+            <span class="pill">People: ${formatBonus((saved?.stats?.People) ?? ch.stats.People)}</span>
           </div>
           <div style="margin-top:.7rem;display:flex;justify-content:flex-end;">
             <button class="btn small">Spill som ${ch.name}</button>
@@ -427,12 +491,25 @@
     function selectCharacter(id) {
       const base = baseCharacters[id];
       currentCharacterId = id;
-      currentState = {
-        stats: cloneStats(base.stats),
-        inventory: [],
-        xp: 0,
-        coins: 0
-      };
+      const saved = loadState(id);
+
+      if (saved && saved.stats) {
+        currentState = {
+          stats: cloneStats(saved.stats),
+          inventory: Array.isArray(saved.inventory) ? saved.inventory.slice() : [],
+          xp: typeof saved.xp === "number" ? saved.xp : 0,
+          coins: typeof saved.coins === "number" ? saved.coins : 0
+        };
+      } else {
+        currentState = {
+          stats: cloneStats(base.stats),
+          inventory: [],
+          xp: 0,
+          coins: 0
+        };
+        saveCurrentState();
+      }
+
       renderSheet();
       showView("view-sheet");
     }
@@ -440,6 +517,8 @@
     function renderSheet() {
       const base = baseCharacters[currentCharacterId];
       const headerEl = document.getElementById("sheet-header");
+      const level = getLevelFromXp(currentState.xp);
+
       headerEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:.75rem;">
           <div class="avatar ${base.avatarClass}">
@@ -449,6 +528,8 @@
             <div style="font-weight:600;font-size:1.1rem;">${base.name}</div>
             <div class="pill-row">
               <span class="pill">${base.role}</span>
+              <span class="pill">⭐ Nivå ${level}</span>
+              <span class="pill">🪙 ${currentState.coins} blokkmynter</span>
             </div>
           </div>
         </div>
@@ -490,7 +571,8 @@
           const delta = parseInt(btn.getAttribute("data-delta"), 10);
           const current = Number(currentState.stats[stat]) || 0;
           currentState.stats[stat] = current + delta;
-          renderSheet(); // enklest: rerender hele
+          saveCurrentState();
+          renderSheet(); // rerender for å oppdatere visning
         });
       });
 
@@ -500,6 +582,8 @@
           const value = Number(input.value);
           if (!Number.isNaN(value)) {
             currentState.stats[stat] = value;
+            saveCurrentState();
+            renderSheet();
           }
         });
       });
@@ -507,8 +591,6 @@
       // XP & coins
       const xpGrid = document.getElementById("xp-grid");
       xpGrid.innerHTML = "";
-
-      const level = getLevelFromXp(currentState.xp);
 
       // XP-kort
       const xpCard = document.createElement("div");
@@ -550,6 +632,7 @@
           const current = Number(currentState.xp) || 0;
           const next = current + delta;
           currentState.xp = next < 0 ? 0 : next;
+          saveCurrentState();
           renderSheet();
         });
       });
@@ -558,6 +641,7 @@
       xpInput.addEventListener("change", () => {
         const value = Number(xpInput.value);
         currentState.xp = Number.isNaN(value) || value < 0 ? 0 : value;
+        saveCurrentState();
         renderSheet();
       });
 
@@ -568,6 +652,7 @@
           const current = Number(currentState.coins) || 0;
           const next = current + delta;
           currentState.coins = next < 0 ? 0 : next;
+          saveCurrentState();
           renderSheet();
         });
       });
@@ -576,6 +661,7 @@
       coinsInput.addEventListener("change", () => {
         const value = Number(coinsInput.value);
         currentState.coins = Number.isNaN(value) || value < 0 ? 0 : value;
+        saveCurrentState();
         renderSheet();
       });
 
@@ -609,6 +695,7 @@
         btn.addEventListener("click", () => {
           const idx = Number(btn.getAttribute("data-remove-index"));
           currentState.inventory.splice(idx, 1);
+          saveCurrentState();
           renderInventory();
         });
       });
@@ -619,6 +706,7 @@
       currentCharacterId = null;
       currentState = null;
       showView("view-select");
+      renderCharacterGrid(); // oppdater kortene med nye lagrede verdier
     });
 
     document.getElementById("btn-reset").addEventListener("click", () => {
@@ -630,6 +718,7 @@
         xp: 0,
         coins: 0
       };
+      saveCurrentState();
       renderSheet();
     });
 
@@ -639,6 +728,7 @@
       if (!text || !currentState) return;
       currentState.inventory.push(text);
       input.value = "";
+      saveCurrentState();
       renderInventory();
     });
 
