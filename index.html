@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8" />
+  <title>15-Minutters DnD – Kube-kompanjong</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 960px;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+      border: 1px solid #1f2937;
+    }
+
+    .character-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .character-card {
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: .5rem;
+    }
+
+    .character-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.6);
+      border-color: #22c55e;
+    }
+
+    .character-header {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+
+    .avatar-fighter {
+      background: linear-gradient(135deg,#f97316,#b91c1c);
+    }
+    .avatar-wizard {
+      background: linear-gradient(135deg,#3b82f6,#6366f1);
+    }
+    .avatar-rogue {
+      background: linear-gradient(135deg,#22c55e,#16a34a);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      padding: .15rem .5rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    .btn {
+      background: #22c55e;
+      color: #020617;
+      border: none;
+      border-radius: 999px;
+      padding: .4rem .9rem;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+    }
+
+    .btn.secondary {
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    .btn.small {
+      padding: .3rem .6rem;
+      font-size: .8rem;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: .75rem;
+    }
+
+    .stat {
+      background: #020617;
+      border-radius: .75rem;
+      padding: .5rem .75rem;
+      border: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .stat-title {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #9ca3af;
+    }
+
+    .stat-value-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .35rem;
+    }
+
+    .stat-value-row input {
+      width: 3rem;
+      text-align: center;
+      padding: .2rem .3rem;
+      border-radius: .4rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: inherit;
+      font-size: .9rem;
+    }
+
+    .inventory {
+      margin-top: 1.25rem;
+      display: grid;
+      gap: .75rem;
+    }
+
+    .inventory-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .inventory-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      padding: .4rem .6rem;
+      border-radius: .6rem;
+      background: #020617;
+      border: 1px solid #111827;
+      font-size: .9rem;
+    }
+
+    .inventory-input-row {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .inventory-input-row input {
+      flex: 1 1 180px;
+      padding: .4rem .5rem;
+      border-radius: .6rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: inherit;
+      font-size: .9rem;
+      box-sizing: border-box;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;
+      margin-top: .25rem;
+    }
+
+    .pill {
+      padding: .15rem .5rem;
+      border-radius: 999px;
+      background: #030712;
+      border: 1px solid #1f2937;
+      font-size: .75rem;
+      color: #9ca3af;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: .9rem;
+        border-radius: .9rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- STARTSIDA: VELG KARAKTER -->
+    <section id="view-select" class="view active">
+      <div class="card">
+        <h1>15-minutters DnD – Kube-kompanjong</h1>
+        <p>Velg en karakter. Barnet kan så bruke siden til å holde orden på HP, stats, XP, blokkmynter og inventory mens dere spiller.</p>
+
+        <div class="character-grid" id="character-grid">
+          <!-- Fylles fra JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- KARAKTER-SHEET -->
+    <section id="view-sheet" class="view">
+      <div class="card">
+        <div class="top-bar">
+          <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+            <button class="btn secondary" id="btn-back">
+              ← Tilbake
+            </button>
+            <div id="sheet-header"></div>
+          </div>
+          <button class="btn secondary small" id="btn-reset">
+            Nullstill karakter
+          </button>
+        </div>
+
+        <h3>Stats</h3>
+        <div class="stat-grid" id="stats-grid">
+          <!-- Fylles fra JavaScript -->
+        </div>
+
+        <h3 style="margin-top:1.25rem;">XP & blokkmynter</h3>
+        <div class="stat-grid" id="xp-grid">
+          <!-- Fylles fra JavaScript -->
+        </div>
+
+        <div class="inventory">
+          <div>
+            <h3>Inventory</h3>
+            <div class="inventory-input-row">
+              <input type="text" id="inventory-input" placeholder="F.eks. Mini-Health Potion, Pickaxe..." />
+              <button class="btn small" id="btn-add-item">Legg til</button>
+            </div>
+          </div>
+          <ul class="inventory-list" id="inventory-list">
+            <!-- Items -->
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- DATA ---
+    const baseCharacters = {
+      fighter: {
+        id: "fighter",
+        name: "Kriger",
+        role: "Tåler mye juling",
+        emoji: "🛡️",
+        avatarClass: "avatar-fighter",
+        description: "Sterk og modig med firkant-sverd.",
+        stats: {
+          HP: 20,
+          AC: 15,
+          Body: 4,  // Body / Initiativ
+          Mind: 1,
+          People: 1
+        }
+      },
+      wizard: {
+        id: "wizard",
+        name: "Bygge-magiker",
+        role: "Magi & kuber",
+        emoji: "🪄",
+        avatarClass: "avatar-wizard",
+        description: "Kaster flamme-kuber og bygger blokker.",
+        stats: {
+          HP: 14,
+          AC: 12,
+          Body: 1,
+          Mind: 4,
+          People: 2
+        }
+      },
+      rogue: {
+        id: "rogue",
+        name: "Snike-kid",
+        role: "Rask og lur",
+        emoji: "🏹",
+        avatarClass: "avatar-rogue",
+        description: "Sniker, skyter og snakker seg ut av trøbbel.",
+        stats: {
+          HP: 17,
+          AC: 14,
+          Body: 3,
+          Mind: 1,
+          People: 3
+        }
+      }
+    };
+
+    let currentCharacterId = null;
+    let currentState = null; // {stats: {...}, inventory: [], xp: 0, coins: 0}
+
+    // --- HJELPEFUNKSJONER ---
+    function cloneStats(stats) {
+      return JSON.parse(JSON.stringify(stats));
+    }
+
+    function showView(id) {
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    function formatBonus(num) {
+      return (num >= 0 ? "+" : "") + num;
+    }
+
+    function getLevelFromXp(xp) {
+      if (xp < 20) return 1;
+      if (xp < 40) return 2;
+      if (xp < 80) return 3;
+      return 4;
+    }
+
+    function renderCharacterGrid() {
+      const grid = document.getElementById("character-grid");
+      grid.innerHTML = "";
+
+      Object.values(baseCharacters).forEach(ch => {
+        const card = document.createElement("div");
+        card.className = "character-card card";
+
+        card.innerHTML = `
+          <div class="character-header">
+            <div class="avatar ${ch.avatarClass}">
+              <span>${ch.emoji}</span>
+            </div>
+            <div>
+              <div style="font-weight:600;">${ch.name}</div>
+              <div class="pill-row">
+                <span class="pill">${ch.role}</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:.9rem;color:#d1d5db;margin:.4rem 0 .6rem;">${ch.description}</p>
+          <div class="pill-row">
+            <span class="pill">HP: ${ch.stats.HP}</span>
+            <span class="pill">AC: ${ch.stats.AC}</span>
+            <span class="pill">Body: ${formatBonus(ch.stats.Body)}</span>
+            <span class="pill">Mind: ${formatBonus(ch.stats.Mind)}</span>
+            <span class="pill">People: ${formatBonus(ch.stats.People)}</span>
+          </div>
+          <div style="margin-top:.7rem;display:flex;justify-content:flex-end;">
+            <button class="btn small">Spill som ${ch.name}</button>
+          </div>
+        `;
+
+        card.addEventListener("click", () => selectCharacter(ch.id));
+        grid.appendChild(card);
+      });
+    }
+
+    // --- KARAKTER-SHEET ---
+    function selectCharacter(id) {
+      const base = baseCharacters[id];
+      currentCharacterId = id;
+      currentState = {
+        stats: cloneStats(base.stats),
+        inventory: [],
+        xp: 0,
+        coins: 0
+      };
+      renderSheet();
+      showView("view-sheet");
+    }
+
+    function renderSheet() {
+      const base = baseCharacters[currentCharacterId];
+      const headerEl = document.getElementById("sheet-header");
+      headerEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <div class="avatar ${base.avatarClass}">
+            <span>${base.emoji}</span>
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:1.1rem;">${base.name}</div>
+            <div class="pill-row">
+              <span class="pill">${base.role}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const statsGrid = document.getElementById("stats-grid");
+      statsGrid.innerHTML = "";
+
+      const statOrder = ["HP", "AC", "Body", "Mind", "People"];
+      const statDescriptions = {
+        HP: "Hvor mye skade du tåler.",
+        AC: "Hvor vanskelig det er å treffe deg.",
+        Body: "Styrke + smidighet (inkl. initiativ).",
+        Mind: "Tenking, matte og gåter.",
+        People: "Sjarme og snakking."
+      };
+
+      statOrder.forEach(key => {
+        const statCard = document.createElement("div");
+        statCard.className = "stat";
+
+        statCard.innerHTML = `
+          <div class="stat-title">${key}</div>
+          <div class="stat-value-row">
+            <button class="btn secondary small" data-delta="-1" data-stat="${key}">−</button>
+            <input type="number" inputmode="numeric" value="${currentState.stats[key]}" data-input-stat="${key}" />
+            <button class="btn secondary small" data-delta="1" data-stat="${key}">+</button>
+          </div>
+          <div style="font-size:.75rem;color:#9ca3af;">${statDescriptions[key]}</div>
+        `;
+
+        statsGrid.appendChild(statCard);
+      });
+
+      // Koble knapper og inputs for stats
+      statsGrid.querySelectorAll("button[data-stat]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const stat = btn.getAttribute("data-stat");
+          const delta = parseInt(btn.getAttribute("data-delta"), 10);
+          const current = Number(currentState.stats[stat]) || 0;
+          currentState.stats[stat] = current + delta;
+          renderSheet(); // enklest: rerender hele
+        });
+      });
+
+      statsGrid.querySelectorAll("input[data-input-stat]").forEach(input => {
+        input.addEventListener("change", () => {
+          const stat = input.getAttribute("data-input-stat");
+          const value = Number(input.value);
+          if (!Number.isNaN(value)) {
+            currentState.stats[stat] = value;
+          }
+        });
+      });
+
+      // XP & coins
+      const xpGrid = document.getElementById("xp-grid");
+      xpGrid.innerHTML = "";
+
+      const level = getLevelFromXp(currentState.xp);
+
+      // XP-kort
+      const xpCard = document.createElement("div");
+      xpCard.className = "stat";
+      xpCard.innerHTML = `
+        <div class="stat-title">XP</div>
+        <div class="stat-value-row">
+          <button class="btn secondary small" data-xp-delta="-1">−</button>
+          <input type="number" inputmode="numeric" value="${currentState.xp}" id="xp-input" />
+          <button class="btn secondary small" data-xp-delta="1">+</button>
+        </div>
+        <div style="font-size:.75rem;color:#9ca3af;">
+          Nivå: <strong>${level}</strong><br/>
+          (1: 0–19, 2: 20–39, 3: 40–79, 4: 80+)
+        </div>
+      `;
+      xpGrid.appendChild(xpCard);
+
+      // Coins-kort
+      const coinCard = document.createElement("div");
+      coinCard.className = "stat";
+      coinCard.innerHTML = `
+        <div class="stat-title">Blokkmynter</div>
+        <div class="stat-value-row">
+          <button class="btn secondary small" data-coins-delta="-1">−</button>
+          <input type="number" inputmode="numeric" value="${currentState.coins}" id="coins-input" />
+          <button class="btn secondary small" data-coins-delta="1">+</button>
+        </div>
+        <div style="font-size:.75rem;color:#9ca3af;">
+          Brukes i butikkene til potions, våpen og engangs-evner.
+        </div>
+      `;
+      xpGrid.appendChild(coinCard);
+
+      // Event listeners for XP
+      xpGrid.querySelectorAll("button[data-xp-delta]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const delta = parseInt(btn.getAttribute("data-xp-delta"), 10);
+          const current = Number(currentState.xp) || 0;
+          const next = current + delta;
+          currentState.xp = next < 0 ? 0 : next;
+          renderSheet();
+        });
+      });
+
+      const xpInput = document.getElementById("xp-input");
+      xpInput.addEventListener("change", () => {
+        const value = Number(xpInput.value);
+        currentState.xp = Number.isNaN(value) || value < 0 ? 0 : value;
+        renderSheet();
+      });
+
+      // Event listeners for coins
+      xpGrid.querySelectorAll("button[data-coins-delta]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const delta = parseInt(btn.getAttribute("data-coins-delta"), 10);
+          const current = Number(currentState.coins) || 0;
+          const next = current + delta;
+          currentState.coins = next < 0 ? 0 : next;
+          renderSheet();
+        });
+      });
+
+      const coinsInput = document.getElementById("coins-input");
+      coinsInput.addEventListener("change", () => {
+        const value = Number(coinsInput.value);
+        currentState.coins = Number.isNaN(value) || value < 0 ? 0 : value;
+        renderSheet();
+      });
+
+      renderInventory();
+    }
+
+    function renderInventory() {
+      const list = document.getElementById("inventory-list");
+      list.innerHTML = "";
+
+      if (currentState.inventory.length === 0) {
+        const li = document.createElement("li");
+        li.style.fontSize = ".9rem";
+        li.style.color = "#9ca3af";
+        li.textContent = "Ingen items ennå. Legg til noe under!";
+        list.appendChild(li);
+        return;
+      }
+
+      currentState.inventory.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "inventory-item";
+        li.innerHTML = `
+          <span>${item}</span>
+          <button class="btn secondary small" data-remove-index="${index}">Fjern</button>
+        `;
+        list.appendChild(li);
+      });
+
+      list.querySelectorAll("button[data-remove-index]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.getAttribute("data-remove-index"));
+          currentState.inventory.splice(idx, 1);
+          renderInventory();
+        });
+      });
+    }
+
+    // --- EVENT LISTENERS FOR UI ---
+    document.getElementById("btn-back").addEventListener("click", () => {
+      currentCharacterId = null;
+      currentState = null;
+      showView("view-select");
+    });
+
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      if (!currentCharacterId) return;
+      const base = baseCharacters[currentCharacterId];
+      currentState = {
+        stats: cloneStats(base.stats),
+        inventory: [],
+        xp: 0,
+        coins: 0
+      };
+      renderSheet();
+    });
+
+    document.getElementById("btn-add-item").addEventListener("click", () => {
+      const input = document.getElementById("inventory-input");
+      const text = input.value.trim();
+      if (!text || !currentState) return;
+      currentState.inventory.push(text);
+      input.value = "";
+      renderInventory();
+    });
+
+    document.getElementById("inventory-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("btn-add-item").click();
+      }
+    });
+
+    // INITIALISER
+    renderCharacterGrid();
+  </script>
+</body>
+</html>
